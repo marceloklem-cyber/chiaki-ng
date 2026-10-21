@@ -50,31 +50,27 @@ jobs:
             python:p
             python-pip:p
 
-      - name: Install argp-standalone (isolated, logged)
-        run: |
-          set -o pipefail
-          pacman -S --needed --noconfirm mingw-w64-x86_64-argp-standalone 2>&1 | tee /tmp/build.log
-
       - name: Python protobuf (nanopb)
         run: pip install protobuf
 
-      - name: Configure (CLI only)
+      - name: Configure (digitador only, no GUI, no CLI/argp)
         run: |
+          set -o pipefail
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCHIAKI_ENABLE_GUI=OFF \
             -DCHIAKI_ENABLE_TESTS=OFF \
-            -DCHIAKI_ENABLE_CLI=ON \
-            -DCHIAKI_CLI_ARGP_STANDALONE=ON \
+            -DCHIAKI_ENABLE_CLI=OFF \
+            -DCHIAKI_ENABLE_DIGITADOR=ON \
             -DCHIAKI_ENABLE_FFMPEG_DECODER=OFF \
             -DCHIAKI_ENABLE_SETSU=OFF \
             -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF \
-            -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF
+            -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF 2>&1 | tee /tmp/build.log
 
-      - name: Build chiaki-cli
+      - name: Build digitador
         run: |
           set -o pipefail
-          cmake --build build --target chiaki-cli --verbose 2>&1 | tee -a /tmp/build.log
+          cmake --build build --target digitador --verbose 2>&1 | tee -a /tmp/build.log
 
       - name: Publish build log via git (on failure)
         if: failure()
@@ -90,15 +86,17 @@ jobs:
       - name: Collect exe + runtime DLLs
         run: |
           mkdir -p dist
-          cp build/cli/chiaki-cli.exe dist/
+          EXE=$(find build -name digitador.exe | head -1)
+          echo "exe: $EXE"
+          cp "$EXE" dist/
           # bundle the mingw64 DLLs the exe depends on, so it runs standalone
-          for dll in $(ldd build/cli/chiaki-cli.exe | grep -i /mingw64/ | awk '{print $3}'); do
+          for dll in $(ldd "$EXE" | grep -i /mingw64/ | awk '{print $3}'); do
             cp "$dll" dist/ || true
           done
           ls -la dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: chiaki-cli-digitador-windows-x64
+          name: digitador-windows-x64
           path: dist/
           if-no-files-found: error

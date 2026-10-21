@@ -203,6 +203,13 @@ endif()
 
 add_subdirectory(lib)
 
+option(CHIAKI_ENABLE_DIGITADOR "Build the standalone digitador text-input CLI" ON)
+if(CHIAKI_ENABLE_DIGITADOR)
+	add_executable(digitador cli/src/digitador.c)
+	target_link_libraries(digitador chiaki-lib)
+	install(TARGETS digitador)
+endif()
+
 if(CHIAKI_ENABLE_CLI)
 	add_subdirectory(cli)
 endif()
