@@ -49,6 +49,7 @@ jobs:
             protobuf:p
             python:p
             python-pip:p
+            argp-standalone:p
 
       - name: Python protobuf (nanopb)
         run: pip install protobuf
@@ -60,6 +61,7 @@ jobs:
             -DCHIAKI_ENABLE_GUI=OFF \
             -DCHIAKI_ENABLE_TESTS=OFF \
             -DCHIAKI_ENABLE_CLI=ON \
+            -DCHIAKI_CLI_ARGP_STANDALONE=ON \
             -DCHIAKI_ENABLE_FFMPEG_DECODER=OFF \
             -DCHIAKI_ENABLE_SETSU=OFF \
             -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF \
