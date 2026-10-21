@@ -245,15 +245,12 @@ static int cmd_type(ChiakiLog *log, int argc, char **argv)
 
 	fprintf(stderr, "[digitador] Conectando a %s (%s)...\n", a.host, a.ps5 ? "PS5" : "PS4");
 
-	char *line = NULL;
-	size_t cap = 0;
-	while(!g_quit)
+	char line[8192];
+	while(!g_quit && fgets(line, sizeof(line), stdin))
 	{
-		ssize_t n = getline(&line, &cap, stdin);
-		if(n < 0)
-			break;
 		if(g_quit)
 			break;
+		size_t n = strlen(line);
 		while(n > 0 && (line[n - 1] == '\n' || line[n - 1] == '\r'))
 			line[--n] = '\0';
 
@@ -277,7 +274,6 @@ static int cmd_type(ChiakiLog *log, int argc, char **argv)
 		else
 			fprintf(stderr, "[digitador] Enviado: \"%s\"\n", line);
 	}
-	free(line);
 
 	chiaki_session_stop(&session);
 	chiaki_session_join(&session);
