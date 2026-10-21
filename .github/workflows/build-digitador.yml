@@ -1,0 +1,82 @@
+name: Build digitador (chiaki-cli) Windows
+
+# Compila apenas o chiaki-cli (com os subcomandos register e type do digitador)
+# para Windows, sem a GUI, e disponibiliza o .exe + DLLs como artefato.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ digitador ]
+
+jobs:
+  build-cli-windows:
+    name: Build chiaki-cli (Windows x64, MSYS2/mingw64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Disable autocrlf
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: git diffutils make
+          pacboy: >-
+            cc:p
+            gcc:p
+            cmake:p
+            ninja:p
+            pkgconf:p
+            openssl:p
+            opus:p
+            curl:p
+            json-c:p
+            libevent:p
+            miniupnpc:p
+            protobuf:p
+            python:p
+            python-pip:p
+
+      - name: Python protobuf (nanopb)
+        run: pip install protobuf
+
+      - name: Configure (CLI only)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCHIAKI_ENABLE_GUI=OFF \
+            -DCHIAKI_ENABLE_TESTS=OFF \
+            -DCHIAKI_ENABLE_CLI=ON \
+            -DCHIAKI_ENABLE_FFMPEG_DECODER=OFF \
+            -DCHIAKI_ENABLE_SETSU=OFF \
+            -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF \
+            -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF
+
+      - name: Build chiaki-cli
+        run: cmake --build build --target chiaki-cli
+
+      - name: Collect exe + runtime DLLs
+        run: |
+          mkdir -p dist
+          cp build/cli/chiaki-cli.exe dist/
+          # bundle the mingw64 DLLs the exe depends on, so it runs standalone
+          for dll in $(ldd build/cli/chiaki-cli.exe | grep -i /mingw64/ | awk '{print $3}'); do
+            cp "$dll" dist/ || true
+          done
+          ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-cli-digitador-windows-x64
+          path: dist/
+          if-no-files-found: error
