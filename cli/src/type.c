@@ -32,10 +32,12 @@ static char doc[] =
 #define ARG_KEY_REGISTKEY  'r'
 #define ARG_KEY_MORNING    'm'
 #define ARG_KEY_ACCOUNTID  'a'
+#define ARG_KEY_CREDS      'c'
 #define ARG_KEY_PS4        '4'
 #define ARG_KEY_PS5        '5'
 
 static struct argp_option options[] = {
+	{ "creds",      ARG_KEY_CREDS,     "File",      0, "Load host/registkey/morning/accountid/console from a creds file (written by 'register')", 0 },
 	{ "host",       ARG_KEY_HOST,      "Host",      0, "Console IP address", 0 },
 	{ "registkey",  ARG_KEY_REGISTKEY, "RegistKey", 0, "Remote Play registration key (the rp_regist_key, plaintext)", 0 },
 	{ "morning",    ARG_KEY_MORNING,   "Morning",   0, "RP key (rp_key) as 32 hex chars = 16 bytes", 0 },
@@ -51,7 +53,9 @@ typedef struct arguments
 	const char *registkey;
 	const char *morning;
 	const char *accountid;
+	const char *creds;
 	bool ps5;
+	bool ps5_set;
 } Arguments;
 
 static int parse_opt(int key, char *arg, struct argp_state *state)
@@ -63,11 +67,51 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		case ARG_KEY_REGISTKEY: arguments->registkey = arg; break;
 		case ARG_KEY_MORNING:   arguments->morning = arg; break;
 		case ARG_KEY_ACCOUNTID: arguments->accountid = arg; break;
-		case ARG_KEY_PS4:       arguments->ps5 = false; break;
-		case ARG_KEY_PS5:       arguments->ps5 = true; break;
+		case ARG_KEY_CREDS:     arguments->creds = arg; break;
+		case ARG_KEY_PS4:       arguments->ps5 = false; arguments->ps5_set = true; break;
+		case ARG_KEY_PS5:       arguments->ps5 = true; arguments->ps5_set = true; break;
 		case ARGP_KEY_ARG:      argp_usage(state); break;
 		default:                return ARGP_ERR_UNKNOWN;
 	}
+	return 0;
+}
+
+// Fill any field not given on the command line from a key=value creds file.
+// Explicit CLI flags always win over the file. Returns 0 on success.
+static int load_creds_file(const char *path, Arguments *a)
+{
+	FILE *f = fopen(path, "r");
+	if(!f)
+	{
+		fprintf(stderr, "Nao consegui abrir o arquivo de credenciais: %s\n", path);
+		return -1;
+	}
+	char line[512];
+	while(fgets(line, sizeof(line), f))
+	{
+		char *nl = strpbrk(line, "\r\n");
+		if(nl)
+			*nl = '\0';
+		if(line[0] == '#' || line[0] == '\0')
+			continue;
+		char *eq = strchr(line, '=');
+		if(!eq)
+			continue;
+		*eq = '\0';
+		const char *key = line;
+		const char *val = eq + 1;
+		if(strcmp(key, "host") == 0 && !a->host)
+			a->host = strdup(val);
+		else if(strcmp(key, "registkey") == 0 && !a->registkey)
+			a->registkey = strdup(val);
+		else if(strcmp(key, "morning") == 0 && !a->morning)
+			a->morning = strdup(val);
+		else if(strcmp(key, "accountid") == 0 && !a->accountid)
+			a->accountid = strdup(val);
+		else if(strcmp(key, "console") == 0 && !a->ps5_set)
+			a->ps5 = (strcmp(val, "ps4") != 0);
+	}
+	fclose(f);
 	return 0;
 }
 
@@ -143,6 +187,9 @@ CHIAKI_EXPORT int chiaki_cli_cmd_type(ChiakiLog *log, int argc, char *argv[])
 	Arguments arguments = { 0 };
 	arguments.ps5 = true;
 	if(argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &arguments) != 0)
+		return 1;
+
+	if(arguments.creds && load_creds_file(arguments.creds, &arguments) != 0)
 		return 1;
 
 	if(!arguments.host)      { fprintf(stderr, "Faltou --host.\n"); return 1; }

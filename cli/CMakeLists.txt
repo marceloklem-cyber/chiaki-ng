@@ -3,7 +3,8 @@ set(SOURCE
 		include/chiaki-cli.h
 		src/discover.c
 		src/wakeup.c
-		src/type.c)
+		src/type.c
+		src/regist_cmd.c)
 
 add_library(chiaki-cli-lib STATIC ${SOURCE})
 target_include_directories(chiaki-cli-lib PUBLIC "include")

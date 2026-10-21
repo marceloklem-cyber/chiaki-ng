@@ -14,7 +14,8 @@ static const char doc[] =
 	"Supported commands are:\n"
 	"  discover    Discover Consoles.\n"
 	"  wakeup      Send Wakeup Packet.\n"
-	"  type        Headless text input (digitador) into console text fields.\n";
+	"  type        Headless text input (digitador) into console text fields.\n"
+	"  register    Pair with a console and print digitador credentials.\n";
 
 #define ARG_KEY_VERBOSE 'v'
 
@@ -64,6 +65,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				exit(call_subcmd(state, "wakeup", chiaki_cli_cmd_wakeup));
 			else if(strcmp(arg, "type") == 0)
 				exit(call_subcmd(state, "type", chiaki_cli_cmd_type));
+			else if(strcmp(arg, "register") == 0)
+				exit(call_subcmd(state, "register", chiaki_cli_cmd_register));
 			// fallthrough
 		case ARGP_KEY_END:
 			argp_usage(state);
