@@ -63,7 +63,17 @@ jobs:
             -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF
 
       - name: Build chiaki-cli
-        run: cmake --build build --target chiaki-cli
+        run: |
+          set -o pipefail
+          cmake --build build --target chiaki-cli --verbose 2>&1 | tee build.log
+
+      - name: Upload build log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: warn
 
       - name: Collect exe + runtime DLLs
         run: |

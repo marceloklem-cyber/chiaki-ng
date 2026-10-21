@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h> // ssize_t
 
 static char doc[] =
 	"Headless text-input (\"digitador\") for PS5/PS4 Remote Play.\n"
