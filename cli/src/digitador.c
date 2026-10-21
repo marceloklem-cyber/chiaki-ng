@@ -12,6 +12,8 @@
 // rides the keyboard channel: each UTF-8 line you type + Enter goes to the
 // focused text field on the console. Ctrl+D quits. Image stays on the console TV.
 
+#define _GNU_SOURCE 1 // for getline() on mingw/glibc
+
 #include <chiaki/session.h>
 #include <chiaki/regist.h>
 #include <chiaki/base64.h>
