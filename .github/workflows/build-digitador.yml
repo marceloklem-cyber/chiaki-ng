@@ -8,6 +8,9 @@ on:
   push:
     branches: [ digitador ]
 
+permissions:
+  contents: write
+
 jobs:
   build-cli-windows:
     name: Build chiaki-cli (Windows x64, MSYS2/mingw64)
@@ -65,15 +68,18 @@ jobs:
       - name: Build chiaki-cli
         run: |
           set -o pipefail
-          cmake --build build --target chiaki-cli --verbose 2>&1 | tee build.log
+          cmake --build build --target chiaki-cli --verbose 2>&1 | tee /tmp/build.log
 
-      - name: Upload build log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-          if-no-files-found: warn
+      - name: Publish build log via git (on failure)
+        if: failure()
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          git checkout --orphan buildlog-tmp
+          git reset
+          cp /tmp/build.log ./build.log
+          git add -f build.log
+          git -c user.email=ci@local -c user.name=ci commit -m "build log ${{ github.run_id }}"
+          git push -f origin HEAD:buildlog
 
       - name: Collect exe + runtime DLLs
         run: |
