@@ -444,6 +444,14 @@ int main(int argc, char *argv[])
 	ChiakiLog log;
 	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
 
+	// Required before any network/crypto use (does WSAStartup on Windows).
+	ChiakiErrorCode init_err = chiaki_lib_init();
+	if(init_err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "chiaki_lib_init falhou: %s\n", chiaki_error_string(init_err));
+		return 1;
+	}
+
 	if(argc < 2)
 	{
 		usage();
