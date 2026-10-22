@@ -259,20 +259,37 @@ static int cmd_type(ChiakiLog *log, int argc, char **argv)
 			fprintf(stderr, "[digitador] Ainda nao conectado; aguarde.\n");
 			continue;
 		}
+		// command protocol:
+		//   /accept  -> confirma o texto no campo (fecha o teclado)
+		//   /reject  -> cancela
+		//   qualquer outra linha -> apenas DEFINE o texto (campo continua aberto)
+		if(strcmp(line, "/accept") == 0)
+		{
+			err = chiaki_session_keyboard_accept(&session);
+			if(err != CHIAKI_ERR_SUCCESS)
+				fprintf(stderr, "[digitador] accept falhou: %s\n", chiaki_error_string(err));
+			else
+				fprintf(stderr, "[digitador] Confirmado.\n");
+			continue;
+		}
+		if(strcmp(line, "/reject") == 0)
+		{
+			err = chiaki_session_keyboard_reject(&session);
+			if(err != CHIAKI_ERR_SUCCESS)
+				fprintf(stderr, "[digitador] reject falhou: %s\n", chiaki_error_string(err));
+			else
+				fprintf(stderr, "[digitador] Cancelado.\n");
+			continue;
+		}
+
 		if(!g_keyboard_open)
-			fprintf(stderr, "[digitador] Aviso: nenhum campo aberto; enviando mesmo assim.\n");
+			fprintf(stderr, "[digitador] Aviso: nenhum campo aberto; definindo mesmo assim.\n");
 
 		err = chiaki_session_keyboard_set_text(&session, line);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
 			fprintf(stderr, "[digitador] set_text falhou: %s\n", chiaki_error_string(err));
-			continue;
-		}
-		err = chiaki_session_keyboard_accept(&session);
-		if(err != CHIAKI_ERR_SUCCESS)
-			fprintf(stderr, "[digitador] accept falhou: %s\n", chiaki_error_string(err));
 		else
-			fprintf(stderr, "[digitador] Enviado: \"%s\"\n", line);
+			fprintf(stderr, "[digitador] Texto definido: \"%s\"\n", line);
 	}
 
 	chiaki_session_stop(&session);
